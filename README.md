@@ -1,3 +1,11 @@
+# KLPOOL
+
+在官方基础上修改(官方目前也是非稳定版本 by 20210408)
+
+- `func (b *CkbTransferUnsignedTxBuilder) GetResult()` changeCapacity 负数溢出修复
+- `func generateTxWithIndexer` 过滤排除掉未成熟cell，未成熟的不可转账
+
+
 # CKB SDK Golang
 
 [![License](https://img.shields.io/badge/license-MIT-green)](https://github.com/nervosnetwork/ckb-sdk-go/blob/master/LICENSE)
