@@ -125,8 +125,8 @@ func (b *CkbTransferUnsignedTxBuilder) GetResult() (*types.Transaction, map[stri
 }
 
 func (b *CkbTransferUnsignedTxBuilder) isEnough() (bool, error) {
-	changeCapacity := b.result.Capacity - b.tx.OutputsCapacity()
-	if changeCapacity > 0 {
+	if b.result.Capacity > b.tx.OutputsCapacity() {
+		changeCapacity := b.result.Capacity - b.tx.OutputsCapacity()
 		fee, err := transaction.CalculateTransactionFee(b.tx, b.FeeRate)
 		if err != nil {
 			return false, err
