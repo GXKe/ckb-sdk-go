@@ -13,13 +13,14 @@ import (
 var _ UnsignedTxBuilder = (*CkbTransferUnsignedTxBuilder)(nil)
 
 type CkbTransferUnsignedTxBuilder struct {
-	To               *types.Script
-	From             *types.Script
-	FeeRate          uint64
-	Iterator         collector.CellCollectionIterator
-	TransferAll      bool
-	SystemScripts    *utils.SystemScripts
-	TransferCapacity uint64
+	MapScript2Amount map[*types.Script]uint64
+	// To               *types.Script
+	From          *types.Script
+	FeeRate       uint64
+	Iterator      collector.CellCollectionIterator
+	TransferAll   bool
+	SystemScripts *utils.SystemScripts
+	// TransferCapacity uint64
 
 	MaxMatureBlockNumber uint64
 
@@ -51,11 +52,14 @@ func (b *CkbTransferUnsignedTxBuilder) BuildCellDeps() {
 
 func (b *CkbTransferUnsignedTxBuilder) BuildOutputsAndOutputsData() error {
 	// set transfer output
-	b.tx.Outputs = append(b.tx.Outputs, &types.CellOutput{
-		Capacity: b.TransferCapacity,
-		Lock:     b.To,
-	})
-	b.tx.OutputsData = [][]byte{{}}
+	for recvScript, amount := range b.MapScript2Amount {
+		b.tx.Outputs = append(b.tx.Outputs, &types.CellOutput{
+			Capacity: amount,
+			Lock:     recvScript,
+		})
+		b.tx.OutputsData = append(b.tx.OutputsData, []byte{})
+	}
+
 	// set change output
 	if !b.TransferAll {
 		b.tx.Outputs = append(b.tx.Outputs, &types.CellOutput{
@@ -64,7 +68,7 @@ func (b *CkbTransferUnsignedTxBuilder) BuildOutputsAndOutputsData() error {
 		})
 		b.tx.OutputsData = append(b.tx.OutputsData, []byte{})
 		// set change output index
-		b.ckbChangeOutputIndex = &collector.ChangeOutputIndex{Value: 1}
+		b.ckbChangeOutputIndex = &collector.ChangeOutputIndex{Value: len(b.MapScript2Amount)}
 	}
 	return nil
 }

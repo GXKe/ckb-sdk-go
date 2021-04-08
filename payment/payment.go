@@ -17,35 +17,36 @@ import (
 )
 
 type Payment struct {
-	From        *types.Script
-	To          *types.Script
-	Amount      uint64
-	FeeRate     uint64
-	group       []int
-	witnessArgs *types.WitnessArgs
-	tx          *types.Transaction
+	From             *types.Script
+	mapScript2Amount map[*types.Script]uint64
+	FeeRate          uint64
+	group            []int
+	witnessArgs      *types.WitnessArgs
+	tx               *types.Transaction
 }
 
 // NewPayment returns a Payment object, amount's unit is shannon
-func NewPayment(from, to string, amount, feeRate uint64) (*Payment, error) {
+func NewPayment(from string, mapTo2Amount map[string]uint64, feeRate uint64) (*Payment, error) {
 	fromAddress, err := address.Parse(from)
 	if err != nil {
 		return nil, fmt.Errorf("parse from address %s error: %v", from, err)
 	}
-	toAddress, err := address.Parse(to)
-	if err != nil {
-		return nil, fmt.Errorf("parse to address %s error: %v", to, err)
-	}
-
-	if fromAddress.Mode != toAddress.Mode {
-		return nil, fmt.Errorf("from address and to address with diffrent network: %v:%v", fromAddress.Mode, toAddress.Mode)
+	mapScript2Amount := map[*types.Script]uint64{}
+	for to, amount := range mapTo2Amount {
+		toAddress, err := address.Parse(to)
+		if err != nil {
+			return nil, fmt.Errorf("parse to address %s error: %v", to, err)
+		}
+		if fromAddress.Mode != toAddress.Mode {
+			return nil, fmt.Errorf("from address and to address with diffrent network: %v:%v", fromAddress.Mode, toAddress.Mode)
+		}
+		mapScript2Amount[toAddress.Script] = amount
 	}
 
 	return &Payment{
-		From:    fromAddress.Script,
-		To:      toAddress.Script,
-		Amount:  amount,
-		FeeRate: feeRate,
+		From:             fromAddress.Script,
+		mapScript2Amount: mapScript2Amount,
+		FeeRate:          feeRate,
 	}, nil
 }
 
@@ -72,11 +73,10 @@ func generateTxWithIndexer(client rpc.Client, p *Payment, systemScripts *utils.S
 	director := builder.Director{}
 	txBuilder := &builder.CkbTransferUnsignedTxBuilder{
 		From:                 p.From,
-		To:                   p.To,
+		MapScript2Amount:     p.mapScript2Amount,
 		FeeRate:              p.FeeRate,
 		Iterator:             iterator,
 		SystemScripts:        systemScripts,
-		TransferCapacity:     p.Amount,
 		MaxMatureBlockNumber: maxMatureBlockNumber,
 	}
 	director.SetBuilder(txBuilder)
