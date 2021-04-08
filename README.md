@@ -4,6 +4,7 @@
 
 - `func (b *CkbTransferUnsignedTxBuilder) GetResult()` changeCapacity 负数溢出修复
 - `func generateTxWithIndexer` 过滤排除掉未成熟cell，未成熟的不可转账
+- 扩展支持单个tx中对多个地址转账
 
 
 # CKB SDK Golang
