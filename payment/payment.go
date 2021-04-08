@@ -3,6 +3,7 @@ package payment
 import (
 	"context"
 	"fmt"
+
 	"github.com/nervosnetwork/ckb-sdk-go/collector"
 	"github.com/nervosnetwork/ckb-sdk-go/indexer"
 	"github.com/nervosnetwork/ckb-sdk-go/transaction/builder"
@@ -64,14 +65,19 @@ func generateTxWithIndexer(client rpc.Client, p *Payment, systemScripts *utils.S
 	if err != nil {
 		return nil, fmt.Errorf("collect cell error: %v", err)
 	}
+	maxMatureBlockNumber, err := utils.GetMaxMatureBlockNumber(client, context.Background())
+	if err != nil {
+		return nil, fmt.Errorf("get max mature block number: %v", err)
+	}
 	director := builder.Director{}
 	txBuilder := &builder.CkbTransferUnsignedTxBuilder{
-		From:             p.From,
-		To:               p.To,
-		FeeRate:          p.FeeRate,
-		Iterator:         iterator,
-		SystemScripts:    systemScripts,
-		TransferCapacity: p.Amount,
+		From:                 p.From,
+		To:                   p.To,
+		FeeRate:              p.FeeRate,
+		Iterator:             iterator,
+		SystemScripts:        systemScripts,
+		TransferCapacity:     p.Amount,
+		MaxMatureBlockNumber: maxMatureBlockNumber,
 	}
 	director.SetBuilder(txBuilder)
 	tx, _, err := director.Generate()

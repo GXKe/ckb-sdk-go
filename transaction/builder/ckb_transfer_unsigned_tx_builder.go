@@ -1,12 +1,13 @@
 package builder
 
 import (
+	"math"
+
 	"github.com/nervosnetwork/ckb-sdk-go/collector"
 	"github.com/nervosnetwork/ckb-sdk-go/transaction"
 	"github.com/nervosnetwork/ckb-sdk-go/types"
 	"github.com/nervosnetwork/ckb-sdk-go/utils"
 	"github.com/pkg/errors"
-	"math"
 )
 
 var _ UnsignedTxBuilder = (*CkbTransferUnsignedTxBuilder)(nil)
@@ -19,6 +20,8 @@ type CkbTransferUnsignedTxBuilder struct {
 	TransferAll      bool
 	SystemScripts    *utils.SystemScripts
 	TransferCapacity uint64
+
+	MaxMatureBlockNumber uint64
 
 	tx                   *types.Transaction
 	result               collector.LiveCellCollectResult
@@ -72,26 +75,29 @@ func (b *CkbTransferUnsignedTxBuilder) BuildInputsAndWitnesses() error {
 		if err != nil {
 			return err
 		}
-		b.result.Capacity += liveCell.Output.Capacity
-		b.result.LiveCells = append(b.result.LiveCells, liveCell)
-		input := &types.CellInput{
-			Since: 0,
-			PreviousOutput: &types.OutPoint{
-				TxHash: liveCell.OutPoint.TxHash,
-				Index:  liveCell.OutPoint.Index,
-			},
-		}
-		b.tx.Inputs = append(b.tx.Inputs, input)
-		b.tx.Witnesses = append(b.tx.Witnesses, []byte{})
-		if len(b.tx.Witnesses[0]) == 0 {
-			b.tx.Witnesses[0] = transaction.EmptyWitnessArgPlaceholder
-		}
-		ok, err := b.isEnough()
-		if err != nil {
-			return err
-		}
-		if ok {
-			return nil
+
+		if utils.IsMature(liveCell, b.MaxMatureBlockNumber) {
+			b.result.Capacity += liveCell.Output.Capacity
+			b.result.LiveCells = append(b.result.LiveCells, liveCell)
+			input := &types.CellInput{
+				Since: 0,
+				PreviousOutput: &types.OutPoint{
+					TxHash: liveCell.OutPoint.TxHash,
+					Index:  liveCell.OutPoint.Index,
+				},
+			}
+			b.tx.Inputs = append(b.tx.Inputs, input)
+			b.tx.Witnesses = append(b.tx.Witnesses, []byte{})
+			if len(b.tx.Witnesses[0]) == 0 {
+				b.tx.Witnesses[0] = transaction.EmptyWitnessArgPlaceholder
+			}
+			ok, err := b.isEnough()
+			if err != nil {
+				return err
+			}
+			if ok {
+				return nil
+			}
 		}
 		err = b.Iterator.Next()
 		if err != nil {
